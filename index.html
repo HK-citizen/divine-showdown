@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Divine Showdown: Omega</title>
+    <title>Divine Showdown: Omega Evolution</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { margin: 0; background: #000; color: white; font-family: 'Arial Black', sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
@@ -10,19 +10,20 @@
         #title-screen { background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://wallpaperaccess.com/full/51441.jpg'); background-size: cover; }
         .omega-text { font-size: 70px; margin: 0; background: linear-gradient(to right, #ff0055, #00ffcc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-        .menu-item { font-size: 18px; padding: 12px 35px; cursor: pointer; margin: 8px; background: rgba(0,0,0,0.8); border: 2px solid #00ffcc; color: #00ffcc; }
-        .menu-item:hover { background: #00ffcc; color: #000; }
+        .menu-item { font-size: 18px; padding: 12px 35px; cursor: pointer; margin: 8px; background: rgba(0,0,0,0.8); border: 2px solid #00ffcc; color: #00ffcc; transition: 0.2s; }
+        .menu-item:hover { background: #00ffcc; color: #000; box-shadow: 0 0 20px #00ffcc; }
         #game-container { display: none; flex-direction: row; align-items: flex-start; margin-top: 10px; }
-        canvas { border: 4px solid #00ffcc; background-color: #222; background-position: center; background-size: cover; }
+        canvas { border: 4px solid #00ffcc; background-color: #111; background-size: cover; }
         #chat-area { width: 220px; height: 500px; background: rgba(10,10,10,0.95); border: 4px solid #333; margin-left: 10px; display: flex; flex-direction: column; }
-        #chat-msgs { flex-grow: 1; overflow-y: auto; padding: 10px; font-family: sans-serif; font-size: 12px; }
-        #chat-input { background: #000; border: none; border-top: 1px solid #00ffcc; color: white; padding: 10px; }
+        #chat-msgs { flex-grow: 1; overflow-y: auto; padding: 10px; font-family: sans-serif; font-size: 12px; text-align: left; }
+        #chat-input { background: #000; border: none; border-top: 1px solid #00ffcc; color: white; padding: 10px; outline: none; }
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px; }
         .card { padding: 15px; border: 2px solid #444; cursor: pointer; background: #111; }
         .card.selected { border-color: #00ffcc; box-shadow: 0 0 15px #00ffcc; }
         .secret-card { color: gold; border-color: gold !important; display: none; }
         .ui-header { display: none; width: 1240px; justify-content: space-between; padding: 10px; }
         .pct-text { font-size: 50px; font-style: italic; margin: 0; text-shadow: 2px 2px 0 #ff0055; }
+        #victory-screen { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 500; background: rgba(0,0,0,0.9); padding: 50px; border: 5px solid #00ffcc; text-align: center; }
     </style>
 </head>
 <body>
@@ -34,8 +35,14 @@
     <div class="menu-item" onclick="swap('code-screen')" style="font-size: 12px; color: #555;">CODE</div>
 </div>
 
+<div id="victory-screen">
+    <h1 id="winner-text" style="font-size: 60px; color: #00ffcc; margin: 0;">VICTORY</h1>
+    <p id="sub-winner-text" style="font-size: 24px; color: #ff0055;"></p>
+    <div class="menu-item" onclick="location.reload()">REMATCH</div>
+</div>
+
 <div id="code-screen" class="full-screen" style="display:none">
-    <input type="text" id="code-in" placeholder="CODE..." style="background: #000; color: gold; border: 1px solid gold; padding: 10px;">
+    <input type="text" id="code-in" placeholder="..." style="background: #000; color: gold; border: 1px solid gold; padding: 10px; text-align: center;">
     <div class="menu-item" onclick="checkCode()">ACTIVATE</div>
     <div class="menu-item" onclick="swap('title-screen')">BACK</div>
 </div>
@@ -50,4 +57,100 @@
 <div id="char-select" class="full-screen" style="display:none">
     <div class="grid" id="char-grid">
         <div class="card" id="Pikachu" onclick="pick('Pikachu')">PIKACHU</div>
-        <div class="card" id="Lucario" onclick="pick('Luc
+        <div class="card" id="Lucario" onclick="pick('Lucario')">LUCARIO</div>
+        <div class="card" id="Greninja" onclick="pick('Greninja')">GRENINJA</div>
+        <div class="card" id="Necrozma" onclick="pick('Necrozma')">NECROZMA</div>
+        <div class="card" id="Zygarde" onclick="pick('Zygarde')">ZYGARDE</div>
+        <div class="card secret-card" id="Broguin" onclick="pick('Broguin')">BROGUIN</div>
+    </div>
+    <div class="menu-item" onclick="readyUp()">START BATTLE</div>
+</div>
+
+<div class="ui-header" id="hud">
+    <div><div id="p1-s" style="color:#00ffcc">● ● ●</div><p id="p1-p" class="pct-text">0%</p></div>
+    <div id="status" style="color:#ff0055; font-size: 20px;">FIGHT!</div>
+    <div><div id="p2-s" style="color:#00ffcc">● ● ●</div><p id="p2-p" class="pct-text">0%</p></div>
+</div>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    <div id="chat-area">
+        <div id="chat-msgs"></div>
+        <input type="text" id="chat-input" placeholder="Chat...">
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1000; canvas.height = 500;
+    let p1, p2, active = false, conn, peer, myChar = "Pikachu", gameMode = "npc", shake = 0, gameOver = false;
+    const stage = { x: 200, y: 380, w: 600, h: 40 };
+
+    peer = new Peer();
+    peer.on('open', id => document.getElementById('peer-id-display').innerText = "ID: " + id);
+    peer.on('connection', c => { conn = c; gameMode = "online"; setupConn(); swap('char-select'); });
+
+    function checkCode() { if(document.getElementById('code-in').value.toUpperCase()==="BROGIUN") { document.getElementById('Broguin').style.display="block"; alert("AWAKENED"); swap('char-select'); } }
+    function setMode(m) { gameMode = m; swap('char-select'); }
+    function swap(id) { document.querySelectorAll('.full-screen').forEach(s => s.style.display = 'none'); if(id !== 'none') document.getElementById(id).style.display = 'flex'; }
+    function joinGame() { gameMode = "online"; conn = peer.connect(document.getElementById('join-id').value); setupConn(); swap('char-select'); }
+
+    function setupConn() {
+        conn.on('data', data => {
+            if(data.type==='chat') addMsg(data.msg,'msg-them');
+            if(data.type==='start') { p2.img.src=getImg(data.char); p2.name=data.char; begin(); }
+            if(data.type==='move') { Object.assign(p2, data); p2.img.src=data.img; }
+            if(data.type==='hit') { p1.pct+=data.val; p1.vx=data.kb; shake=10; }
+        });
+    }
+
+    function addMsg(t,c) { const m=document.createElement('div'); m.style.color=(c==='msg-me'?'#00ffcc':'#ff0055'); m.innerText=t; document.getElementById('chat-msgs').appendChild(m); }
+    document.getElementById('chat-input').onkeypress=e=>{ if(e.key==='Enter'&&conn) { conn.send({type:'chat',msg:e.target.value}); addMsg(e.target.value,'msg-me'); e.target.value=''; } };
+
+    function getImg(n) { const d={Pikachu:25,Lucario:448,Greninja:658,Broguin:393,Necrozma:800,Zygarde:718}; return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${d[n]||25}.gif`; }
+    function pick(n) { myChar=n; document.querySelectorAll('.card').forEach(c=>c.classList.remove('selected')); document.getElementById(n).classList.add('selected'); }
+    function readyUp() { if(gameMode==="online"&&conn) conn.send({type:'start',char:myChar}); begin(); }
+
+    function begin() {
+        swap('none'); document.getElementById('hud').style.display='flex'; document.getElementById('game-container').style.display='flex';
+        canvas.style.backgroundImage="url('https://wallpaperaccess.com/full/51441.jpg')";
+        p1=new Fighter(300,myChar,true); p2=new Fighter(650,(gameMode==="npc"?"Necrozma":"Lucario"),false);
+        if(gameMode==="npc") document.getElementById('chat-area').style.display="none";
+        active=true; loop();
+    }
+
+    class Fighter {
+        constructor(x,n,m) { this.x=x;this.y=100;this.name=n;this.isMine=m;this.vx=0;this.vy=0;this.pct=0;this.stocks=3;this.w=n==="Necrozma"?130:100;this.h=this.w;this.img=new Image();this.img.src=getImg(n);this.beam=0; }
+        update() {
+            if(gameOver) return;
+            if(this.name==="Zygarde"&&this.pct>=100&&!this.mega) { this.mega=true; this.w=160; this.h=160; this.img.src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/718-complete.gif"; }
+            this.vy+=0.7; this.y+=this.vy; this.x+=this.vx; this.vx*=0.93;
+            if(this.y+this.h>stage.y && this.y<stage.y+stage.h && this.x+this.w>stage.x && this.x<stage.x+stage.w && this.vy>0) { this.y=stage.y-this.h; this.vy=0; }
+            if(this.x<-200||this.x>1200||this.y>600) { this.stocks--; this.beam=30; this.dX=this.x; this.x=500; this.y=50; this.pct=0; if(this.stocks<=0) endGame(this.isMine?p2:p1); }
+            if(this.isMine&&conn) conn.send({type:'move',x:this.x,y:this.y,pct:this.pct,stocks:this.stocks,w:this.w,h:this.h,img:this.img.src});
+            document.getElementById(this.isMine?'p1-p':'p2-p').innerText=Math.floor(this.pct)+"%"; document.getElementById(this.isMine?'p1-s':'p2-s').innerText="● ".repeat(Math.max(0,this.stocks));
+        }
+        draw() {
+            ctx.save();
+            if(this.beam>0) { ctx.fillStyle=this.isMine?"rgba(0,255,204,0.5)":"rgba(255,0,85,0.5)"; ctx.fillRect(this.dX<0?0:960,0,40,500); this.beam--; }
+            ctx.shadowBlur=15; ctx.shadowColor="black"; ctx.filter="contrast(1.2)";
+            ctx.drawImage(this.img,this.x,this.y,this.w,this.h); ctx.restore();
+        }
+    }
+
+    function endGame(w) { gameOver=true; document.getElementById('victory-screen').style.display='block'; document.getElementById('sub-winner-text').innerText=w.name.toUpperCase()+" WINS"; }
+    const keys = {}; window.onkeydown=e=>keys[e.key]=true; window.onkeyup=e=>keys[e.key]=false;
+
+    function loop() {
+        if(!active||gameOver) return;
+        ctx.save(); if(shake>0) { ctx.translate(Math.random()*shake-shake/2,Math.random()*shake-shake/2); shake*=0.9; }
+        ctx.clearRect(-100,-100,1200,700); ctx.fillStyle='rgba(0,255,204,0.3)'; ctx.fillRect(stage.x,stage.y,stage.w,stage.h);
+        if(keys['ArrowLeft'])p1.vx=-6; if(keys['ArrowRight'])p1.vx=6; if(keys['ArrowUp']&&p1.vy===0)p1.vy=-15;
+        if(keys[' ']) { if(Math.abs(p1.x-p2.x)<90&&Math.abs(p1.y-p2.y)<90) { let d=p1.name==="Necrozma"?2:1.5; p2.pct+=d; p2.vx=(p1.x<p2.x?1:-1)*(p2.pct/4); shake=p2.pct/10; if(conn)conn.send({type:'hit',val:d,kb:p2.vx}); } }
+        if(gameMode==="npc") { if(p2.x<p1.x-65)p2.vx=4; else if(p2.x>p1.x+65)p2.vx=-4; if(p1.y<p2.y-50&&p2.vy===0)p2.vy=-14; if(Math.abs(p1.x-p2.x)<70&&Math.abs(p1.y-p2.y)<70)p1.pct+=0.3; }
+        p1.update(); p2.update(); p1.draw(); p2.draw(); ctx.restore(); requestAnimationFrame(loop);
+    }
+</script>
+</body>
+</html>
