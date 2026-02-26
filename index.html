@@ -7,43 +7,43 @@
     <style>
         body { margin: 0; background: #000; color: white; font-family: 'Arial Black', sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
         .screen { position: absolute; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        #title-screen { background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://wallpaperaccess.com/full/51441.jpg'); background-size: cover; z-index: 200; }
-        .btn { font-size: 18px; padding: 12px 30px; cursor: pointer; margin: 8px; background: #111; border: 2px solid #00ffcc; color: #00ffcc; transition: 0.2s; }
-        .btn:hover { background: #00ffcc; color: #000; box-shadow: 0 0 20px #00ffcc; }
+        #title-screen { background: #111; z-index: 200; }
+        .btn { font-size: 18px; padding: 12px 30px; cursor: pointer; margin: 8px; background: #221; border: 2px solid #00ffcc; color: #00ffcc; }
+        .btn:hover { background: #00ffcc; color: #000; }
         #game-ui { display: none; width: 900px; justify-content: space-between; padding: 10px; position: absolute; top: 0; z-index: 50; }
-        .pct { font-size: 45px; color: #ff0055; font-style: italic; text-shadow: 2px 2px #000; }
-        canvas { border: 4px solid #00ffcc; background-color: #111; background-size: cover; display: none; }
+        .pct { font-size: 45px; color: #ff0055; font-style: italic; }
+        canvas { border: 4px solid #00ffcc; background: #111; display: none; }
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .card { padding: 15px; border: 2px solid #444; background: #111; cursor: pointer; }
-        .card.selected { border-color: #00ffcc; box-shadow: 0 0 15px #00ffcc; }
+        .card.selected { border-color: #00ffcc; box-shadow: 0 0 10px #00ffcc; }
     </style>
 </head>
 <body>
 
 <div id="title-screen" class="screen">
-    <h1 style="font-size:70px; color:#00ffcc; margin:10px;">OMEGA</h1>
-    <div class="btn" onclick="setMode('npc')">SOLO BATTLE</div>
+    <h1 style="font-size:70px; color:#00ffcc;">OMEGA</h1>
+    <div class="btn" onclick="show('map-select')">SOLO BATTLE</div>
     <div class="btn" onclick="show('multi-menu')">MULTIPLAYER</div>
     <div class="btn" onclick="show('code-screen')">ENTER CODE</div>
 </div>
 
 <div id="multi-menu" class="screen" style="display:none;">
-    <h3 id="my-id">Connecting...</h3>
-    <input type="text" id="join-id" placeholder="Friend's ID" style="padding:10px; margin:5px;">
+    <h3 id="my-id">ID: Loading...</h3>
+    <input type="text" id="join-id" placeholder="Friend's ID" style="padding:10px;">
     <div class="btn" onclick="startHost()">HOST</div>
     <div class="btn" onclick="startJoin()">JOIN</div>
     <div class="btn" onclick="show('title-screen')">BACK</div>
 </div>
 
 <div id="code-screen" class="screen" style="display:none;">
-    <h2>SECRET CODE</h2>
-    <input type="text" id="code-in" style="padding:10px; text-align:center;">
+    <h2>CODE</h2>
+    <input type="text" id="code-in" style="padding:10px;">
     <div class="btn" onclick="checkCode()">ACTIVATE</div>
     <div class="btn" onclick="show('title-screen')">BACK</div>
 </div>
 
 <div id="map-select" class="screen" style="display:none;">
-    <h2>SELECT ARENA</h2>
+    <h2>MAP</h2>
     <div class="btn" onclick="setMap('https://wallpaperaccess.com/full/51441.jpg')">VOID</div>
     <div class="btn" onclick="setMap('https://wallpaperaccess.com/full/1165415.jpg')">LAVA</div>
 </div>
@@ -52,7 +52,6 @@
     <div class="grid">
         <div class="card" id="Pikachu" onclick="pick('Pikachu')">PIKACHU</div>
         <div class="card" id="Lucario" onclick="pick('Lucario')">LUCARIO</div>
-        <div class="card" id="Zygarde" onclick="pick('Zygarde')">ZYGARDE</div>
         <div id="Broguin" class="card" style="display:none; color:gold;" onclick="pick('Broguin')">BROGUIN</div>
     </div>
     <div class="btn" onclick="ready()">READY</div>
@@ -72,10 +71,10 @@
 
     const peer = new Peer();
     peer.on('open', id => document.getElementById('my-id').innerText = "ID: " + id);
+    peer.on('error', err => console.log("Peer error:", err));
     
     function show(id) { document.querySelectorAll('.screen').forEach(s => s.style.display = 'none'); document.getElementById(id).style.display = 'flex'; }
     function checkCode() { if(document.getElementById('code-in').value.toUpperCase() === "BROGIUN") { document.getElementById('Broguin').style.display = "block"; alert("UNLOCKED"); } }
-    function setMode(m) { gameMode = m; show('map-select'); }
     function setMap(url) { mapUrl = url; show('char-select'); }
     function pick(n) { myChar = n; document.querySelectorAll('.card').forEach(c => c.classList.remove('selected')); document.getElementById(n).classList.add('selected'); }
 
@@ -93,7 +92,7 @@
 
     function ready() {
         if(gameMode === "multi") conn.send({type: 'start', map: mapUrl, c1: myChar, c2: myChar});
-        beginGame(myChar, "Zygarde");
+        beginGame(myChar, "Lucario");
     }
 
     function beginGame(c1, c2) {
@@ -111,10 +110,11 @@
     class Fighter {
         constructor(x, n, isP) {
             this.x = x; this.y = 100; this.w = 90; this.h = 90; this.vx = 0; this.vy = 0; this.pct = 0;
-            this.isP = isP; this.dir = isP ? 1 : -1; this.jumps = 0; this.m1Anim = 0;
+            this.isP = isP; this.dir = isP ? 1 : -1; this.jumps = 0;
             this.img = new Image();
-            const ids = {Pikachu:25, Lucario:448, Zygarde:718, Broguin:393};
+            const ids = {Pikachu:25, Lucario:448, Broguin:393};
             this.img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${ids[n]||25}.gif`;
+            this.img.onerror = () => { this.img.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png"; };
         }
         update() {
             this.vy += 0.7; this.x += this.vx; this.y += this.vy; this.vx *= 0.9;
@@ -122,13 +122,9 @@
                 this.y = stage.y-this.h; this.vy = 0; this.jumps = 0;
             }
             if (this.y > 600 || this.x < -150 || this.x > 1150) { this.x = 500; this.y = 50; this.pct = 0; this.vx = 0; }
-            if (this.m1Anim > 0) this.m1Anim--;
             document.getElementById(this.isP ? 'p1-p' : 'p2-p').innerText = Math.floor(this.pct) + "%";
         }
-        draw() { 
-            if(this.m1Anim > 0) { ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(this.x+45+(this.dir*40), this.y+45, 40, 0, Math.PI*2); ctx.fill(); }
-            ctx.drawImage(this.img, this.x, this.y, this.w, this.h); 
-        }
+        draw() { ctx.drawImage(this.img, this.x, this.y, this.w, this.h); }
     }
 
     const keys = {};
@@ -141,7 +137,6 @@
         }
     };
     window.onkeyup = e => keys[e.key] = false;
-    window.onmousedown = () => { p1.m1Anim = 10; if(Math.abs(p1.x - p2.x) < 120) { p2.pct += 4; p2.vx = p1.dir * 8; } };
 
     function loop() {
         if(!active) return;
