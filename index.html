@@ -7,12 +7,12 @@
     <style>
         body { margin: 0; background: #000; color: white; font-family: 'Arial Black', sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
         .screen { position: absolute; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        #title-screen { background: #111; z-index: 200; }
-        .btn { font-size: 18px; padding: 12px 30px; cursor: pointer; margin: 8px; background: #221; border: 2px solid #00ffcc; color: #00ffcc; }
-        .btn:hover { background: #00ffcc; color: #000; }
-        #game-ui { display: none; width: 900px; justify-content: space-between; padding: 10px; position: absolute; top: 0; z-index: 50; }
-        .pct { font-size: 45px; color: #ff0055; font-style: italic; }
-        canvas { border: 4px solid #00ffcc; background: #111; display: none; }
+        #title-screen { background: radial-gradient(circle, #222, #000); z-index: 200; }
+        .btn { font-size: 18px; padding: 12px 30px; cursor: pointer; margin: 8px; background: #111; border: 2px solid #00ffcc; color: #00ffcc; font-weight: bold; transition: 0.2s; }
+        .btn:hover { background: #00ffcc; color: #000; box-shadow: 0 0 20px #00ffcc; }
+        #game-ui { display: none; width: 900px; justify-content: space-between; padding: 10px; position: absolute; top: 0; z-index: 50; pointer-events: none; }
+        .pct { font-size: 45px; color: #ff0055; font-style: italic; text-shadow: 2px 2px #000; }
+        canvas { border: 4px solid #00ffcc; background: #111; display: none; background-size: cover; background-position: center; }
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .card { padding: 15px; border: 2px solid #444; background: #111; cursor: pointer; }
         .card.selected { border-color: #00ffcc; box-shadow: 0 0 10px #00ffcc; }
@@ -21,140 +21,22 @@
 <body>
 
 <div id="title-screen" class="screen">
-    <h1 style="font-size:70px; color:#00ffcc;">OMEGA</h1>
-    <div class="btn" onclick="show('map-select')">SOLO BATTLE</div>
+    <h1 style="font-size:70px; color:#00ffcc; margin:0; text-shadow: 0 0 20px #00ffcc;">OMEGA</h1>
+    <div class="btn" onclick="show('map-select')">SOLO ASCENSION</div>
     <div class="btn" onclick="show('multi-menu')">MULTIPLAYER</div>
     <div class="btn" onclick="show('code-screen')">ENTER CODE</div>
 </div>
 
 <div id="multi-menu" class="screen" style="display:none;">
-    <h3 id="my-id">ID: Loading...</h3>
-    <input type="text" id="join-id" placeholder="Friend's ID" style="padding:10px;">
+    <h3 id="my-id">Connecting...</h3>
+    <input type="text" id="join-id" placeholder="Friend's ID" style="padding:10px; width:200px;">
     <div class="btn" onclick="startHost()">HOST</div>
     <div class="btn" onclick="startJoin()">JOIN</div>
     <div class="btn" onclick="show('title-screen')">BACK</div>
 </div>
 
 <div id="code-screen" class="screen" style="display:none;">
-    <h2>CODE</h2>
-    <input type="text" id="code-in" style="padding:10px;">
+    <h2>SECRET DATA</h2>
+    <input type="text" id="code-in" style="padding:10px; font-size:20px; text-align:center;">
     <div class="btn" onclick="checkCode()">ACTIVATE</div>
-    <div class="btn" onclick="show('title-screen')">BACK</div>
-</div>
-
-<div id="map-select" class="screen" style="display:none;">
-    <h2>MAP</h2>
-    <div class="btn" onclick="setMap('https://wallpaperaccess.com/full/51441.jpg')">VOID</div>
-    <div class="btn" onclick="setMap('https://wallpaperaccess.com/full/1165415.jpg')">LAVA</div>
-</div>
-
-<div id="char-select" class="screen" style="display:none;">
-    <div class="grid">
-        <div class="card" id="Pikachu" onclick="pick('Pikachu')">PIKACHU</div>
-        <div class="card" id="Lucario" onclick="pick('Lucario')">LUCARIO</div>
-        <div id="Broguin" class="card" style="display:none; color:gold;" onclick="pick('Broguin')">BROGUIN</div>
-    </div>
-    <div class="btn" onclick="ready()">READY</div>
-</div>
-
-<div id="game-ui"><p id="p1-p" class="pct">0%</p><p id="p2-p" class="pct">0%</p></div>
-<canvas id="gameCanvas"></canvas>
-
-<script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 1000; canvas.height = 500;
-    
-    let p1, p2, active = false, myChar = "Pikachu", gameMode = "npc", conn, mapUrl = "";
-    let projectiles = [];
-    const stage = { x: 200, y: 380, w: 600, h: 40 };
-
-    const peer = new Peer();
-    peer.on('open', id => document.getElementById('my-id').innerText = "ID: " + id);
-    peer.on('error', err => console.log("Peer error:", err));
-    
-    function show(id) { document.querySelectorAll('.screen').forEach(s => s.style.display = 'none'); document.getElementById(id).style.display = 'flex'; }
-    function checkCode() { if(document.getElementById('code-in').value.toUpperCase() === "BROGIUN") { document.getElementById('Broguin').style.display = "block"; alert("UNLOCKED"); } }
-    function setMap(url) { mapUrl = url; show('char-select'); }
-    function pick(n) { myChar = n; document.querySelectorAll('.card').forEach(c => c.classList.remove('selected')); document.getElementById(n).classList.add('selected'); }
-
-    function startHost() { peer.on('connection', c => { conn = c; setupConn(); show('map-select'); }); }
-    function startJoin() { conn = peer.connect(document.getElementById('join-id').value); setupConn(); show('char-select'); }
-
-    function setupConn() {
-        gameMode = "multi";
-        conn.on('data', data => {
-            if(data.type === 'start') { mapUrl = data.map; beginGame(data.c2, data.c1); }
-            if(data.type === 'update' && p2) { p2.x = data.x; p2.y = data.y; p2.pct = data.pct; p2.dir = data.dir; }
-            if(data.type === 'atk') projectiles.push(new Projectile(p2.x+40, p2.y+40, p2.dir, p2));
-        });
-    }
-
-    function ready() {
-        if(gameMode === "multi") conn.send({type: 'start', map: mapUrl, c1: myChar, c2: myChar});
-        beginGame(myChar, "Lucario");
-    }
-
-    function beginGame(c1, c2) {
-        show('none'); canvas.style.display = "block"; document.getElementById('game-ui').style.display = "flex";
-        canvas.style.backgroundImage = `url('${mapUrl}')`;
-        p1 = new Fighter(300, c1, true); p2 = new Fighter(650, c2, false);
-        active = true; loop();
-    }
-
-    class Projectile {
-        constructor(x, y, dir, owner) { this.x = x; this.y = y; this.vx = dir * 14; this.owner = owner; this.life = 60; }
-        draw() { ctx.fillStyle = "#00ffff"; ctx.beginPath(); ctx.arc(this.x, this.y, 10, 0, Math.PI*2); ctx.fill(); }
-    }
-
-    class Fighter {
-        constructor(x, n, isP) {
-            this.x = x; this.y = 100; this.w = 90; this.h = 90; this.vx = 0; this.vy = 0; this.pct = 0;
-            this.isP = isP; this.dir = isP ? 1 : -1; this.jumps = 0;
-            this.img = new Image();
-            const ids = {Pikachu:25, Lucario:448, Broguin:393};
-            this.img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${ids[n]||25}.gif`;
-            this.img.onerror = () => { this.img.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png"; };
-        }
-        update() {
-            this.vy += 0.7; this.x += this.vx; this.y += this.vy; this.vx *= 0.9;
-            if (this.y+this.h > stage.y && this.y < stage.y+stage.h && this.x+this.w > stage.x && this.x < stage.x+stage.w && this.vy > 0) {
-                this.y = stage.y-this.h; this.vy = 0; this.jumps = 0;
-            }
-            if (this.y > 600 || this.x < -150 || this.x > 1150) { this.x = 500; this.y = 50; this.pct = 0; this.vx = 0; }
-            document.getElementById(this.isP ? 'p1-p' : 'p2-p').innerText = Math.floor(this.pct) + "%";
-        }
-        draw() { ctx.drawImage(this.img, this.x, this.y, this.w, this.h); }
-    }
-
-    const keys = {};
-    window.onkeydown = e => {
-        keys[e.key] = true;
-        if(e.key === "ArrowUp" && p1.jumps < 2) { p1.vy = -14; p1.jumps++; }
-        if(e.key === " ") { 
-            projectiles.push(new Projectile(p1.x+40, p1.y+40, p1.dir, p1)); 
-            if(conn) conn.send({type:'atk'});
-        }
-    };
-    window.onkeyup = e => keys[e.key] = false;
-
-    function loop() {
-        if(!active) return;
-        ctx.clearRect(0,0,1000,500);
-        ctx.fillStyle = "rgba(0,255,204,0.2)"; ctx.fillRect(stage.x, stage.y, stage.w, stage.h);
-        if(keys.ArrowLeft) { p1.vx = -6; p1.dir = -1; }
-        if(keys.ArrowRight) { p1.vx = 6; p1.dir = 1; }
-        if(conn) conn.send({type:'update', x:p1.x, y:p1.y, pct:p1.pct, dir:p1.dir});
-        projectiles.forEach((proj, i) => {
-            proj.x += proj.vx; proj.draw();
-            let t = proj.owner === p1 ? p2 : p1;
-            if(proj.x > t.x && proj.x < t.x + 90 && proj.y > t.y && proj.y < t.y + 90) {
-                t.pct += 6; t.vx = proj.vx * (t.pct/20); projectiles.splice(i,1);
-            }
-        });
-        p1.update(); if(gameMode === "npc") p2.update();
-        p1.draw(); p2.draw(); requestAnimationFrame(loop);
-    }
-</script>
-</body>
-</html>
+    <div class="btn" onclick="
