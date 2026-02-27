@@ -2,41 +2,216 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Omega: Divine Showdown</title>
+    <title>Omega: Ultimate Orb Edition</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { margin: 0; background: #000; color: white; font-family: 'Arial Black', sans-serif; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
-        .screen { position: absolute; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        #title-screen { background: radial-gradient(circle, #222, #000); z-index: 200; }
-        .btn { font-size: 18px; padding: 12px 30px; cursor: pointer; margin: 8px; background: #111; border: 2px solid #00ffcc; color: #00ffcc; font-weight: bold; transition: 0.2s; }
-        .btn:hover { background: #00ffcc; color: #000; box-shadow: 0 0 20px #00ffcc; }
-        #game-ui { display: none; width: 900px; justify-content: space-between; padding: 10px; position: absolute; top: 0; z-index: 50; pointer-events: none; }
-        .pct { font-size: 45px; color: #ff0055; font-style: italic; text-shadow: 2px 2px #000; }
-        canvas { border: 4px solid #00ffcc; background: #111; display: none; background-size: cover; background-position: center; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .card { padding: 15px; border: 2px solid #444; background: #111; cursor: pointer; }
-        .card.selected { border-color: #00ffcc; box-shadow: 0 0 10px #00ffcc; }
+        .screen { position: absolute; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        #title-screen { background: radial-gradient(circle, #333, #000); }
+        .btn { font-size: 20px; padding: 15px 40px; cursor: pointer; margin: 10px; background: #111; border: 3px solid #00ffcc; color: #00ffcc; font-weight: bold; transition: 0.1s; border-radius: 8px; }
+        .btn:hover { background: #00ffcc; color: #000; box-shadow: 0 0 25px #00ffcc; }
+        #game-ui { display: none; width: 950px; justify-content: space-between; position: absolute; top: 20px; z-index: 50; pointer-events: none; }
+        #chat-box { position: absolute; bottom: 20px; left: 20px; width: 250px; background: rgba(0,0,0,0.8); border: 1px solid #00ffcc; display: none; flex-direction: column; z-index: 60; }
+        #chat-log { height: 100px; overflow-y: auto; font-size: 11px; padding: 5px; color: #00ffcc; }
+        #chat-in { background: #000; border: none; border-top: 1px solid #00ffcc; color: white; padding: 5px; outline: none; }
+        .pct { font-size: 60px; color: #ff0055; font-style: italic; text-shadow: 3px 3px #000; }
+        canvas { border: 5px solid #00ffcc; background: #111; display: none; background-size: cover; background-position: center; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        .card { padding: 15px; border: 2px solid #444; background: #111; cursor: pointer; text-align: center; border-radius: 10px; }
+        .card.selected { border-color: #00ffcc; box-shadow: 0 0 15px #00ffcc; transform: scale(1.1); }
     </style>
 </head>
 <body>
 
 <div id="title-screen" class="screen">
-    <h1 style="font-size:70px; color:#00ffcc; margin:0; text-shadow: 0 0 20px #00ffcc;">OMEGA</h1>
-    <div class="btn" onclick="show('map-select')">SOLO ASCENSION</div>
+    <h1 style="font-size:90px; color:#fff; margin:0; text-shadow: 0 0 30px #00ffcc;">OMEGA</h1>
+    <div class="btn" onclick="show('map-select'); gameMode='npc'">SOLO ASCENSION</div>
     <div class="btn" onclick="show('multi-menu')">MULTIPLAYER</div>
     <div class="btn" onclick="show('code-screen')">ENTER CODE</div>
 </div>
 
 <div id="multi-menu" class="screen" style="display:none;">
-    <h3 id="my-id">Connecting...</h3>
-    <input type="text" id="join-id" placeholder="Friend's ID" style="padding:10px; width:200px;">
+    <h3 id="my-id" style="color:#00ffcc;">Peer ID: Loading...</h3>
+    <input type="text" id="join-id" placeholder="Paste ID Here" style="padding:12px; font-size:18px; width:250px; border-radius:5px;">
     <div class="btn" onclick="startHost()">HOST</div>
     <div class="btn" onclick="startJoin()">JOIN</div>
     <div class="btn" onclick="show('title-screen')">BACK</div>
 </div>
 
 <div id="code-screen" class="screen" style="display:none;">
-    <h2>SECRET DATA</h2>
+    <h2>UNLOCKED VAULT</h2>
     <input type="text" id="code-in" style="padding:10px; font-size:20px; text-align:center;">
     <div class="btn" onclick="checkCode()">ACTIVATE</div>
-    <div class="btn" onclick="
+    <div class="btn" onclick="show('title-screen')">BACK</div>
+</div>
+
+<div id="map-select" class="screen" style="display:none;">
+    <h2>SELECT ARENA</h2>
+    <div class="btn" onclick="setMap('https://wallpaperaccess.com/full/51441.jpg')">VOID</div>
+    <div class="btn" onclick="setMap('https://wallpaperaccess.com/full/1165415.jpg')">LAVA</div>
+    <div class="btn" onclick="setMap('https://wallpaperaccess.com/full/156340.jpg')">SKY</div>
+</div>
+
+<div id="char-select" class="screen" style="display:none;">
+    <div class="grid">
+        <div class="card" id="Pikachu" onclick="pick('Pikachu')">PIKACHU</div>
+        <div class="card" id="Lucario" onclick="pick('Lucario')">LUCARIO</div>
+        <div class="card" id="Charizard" onclick="pick('Charizard')">CHARIZARD</div>
+        <div class="card" id="Necrozma" onclick="pick('Necrozma')">NECROZMA</div>
+        <div id="Broguin" class="card" style="display:none; color:gold;" onclick="pick('Broguin')">BROGUIN</div>
+    </div>
+    <div class="btn" onclick="ready()">FIGHT!</div>
+</div>
+
+<div id="game-ui"><p id="p1-p" class="pct">0%</p><p id="p2-p" class="pct">0%</p></div>
+
+<div id="chat-box">
+    <div id="chat-log"></div>
+    <input type="text" id="chat-in" placeholder="Say something...">
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1000; canvas.height = 500;
+    
+    let p1, p2, active = false, myChar = "Pikachu", gameMode = "npc", conn, mapUrl = "", shake = 0, projectiles = [];
+    let orb = { x: 500, y: 200, active: false, timer: 400 };
+    const stage = { x: 200, y: 380, w: 600, h: 40 };
+
+    const peer = new Peer();
+    peer.on('open', id => document.getElementById('my-id').innerText = "ID: " + id);
+    
+    function show(id) { document.querySelectorAll('.screen').forEach(s => s.style.display = 'none'); if(id!=='none') document.getElementById(id).style.display = 'flex'; }
+    function checkCode() { if(document.getElementById('code-in').value.toUpperCase()==="BROGIUN"){ document.getElementById('Broguin').style.display="block"; alert("🐧 BROGUIN UNLOCKED"); } }
+    function setMap(url) { mapUrl = url; show('char-select'); }
+    function pick(n) { myChar=n; document.querySelectorAll('.card').forEach(c=>c.classList.remove('selected')); document.getElementById(n).classList.add('selected'); }
+
+    function startHost() { peer.on('connection', c => { conn = c; setupConn(); show('map-select'); }); }
+    function startJoin() { conn = peer.connect(document.getElementById('join-id').value); setupConn(); show('char-select'); }
+
+    function setupConn() {
+        gameMode = "multi";
+        conn.on('data', data => {
+            if(data.type === 'start') { mapUrl = data.map; beginGame(data.c2, data.c1); }
+            if(data.type === 'update' && p2) { p2.x = data.x; p2.y = data.y; p2.pct = data.pct; p2.dir = data.dir; p2.ult = data.ult; }
+            if(data.type === 'atk') projectiles.push(new Projectile(p2.x+p2.w/2, p2.y+p2.h/2, p2.dir, p2));
+            if(data.type === 'msg') addChat("FRIEND: " + data.txt);
+            if(data.type === 'orb') { orb.active = data.active; orb.x = data.x; orb.y = data.y; }
+        });
+    }
+
+    function addChat(t) { const l=document.getElementById('chat-log'); l.innerHTML += `<div>${t}</div>`; l.scrollTop = l.scrollHeight; }
+
+    function ready() {
+        if(gameMode === "multi") conn.send({type: 'start', map: mapUrl, c1: myChar, c2: myChar});
+        beginGame(myChar, (gameMode === "npc" ? "Necrozma" : "Lucario"));
+    }
+
+    function beginGame(c1, c2) {
+        show('none'); canvas.style.display="block"; document.getElementById('game-ui').style.display="flex";
+        if(gameMode==="multi") document.getElementById('chat-box').style.display="flex";
+        canvas.style.backgroundImage=`url('${mapUrl}')`;
+        p1 = new Fighter(300, c1, true); p2 = new Fighter(650, c2, false);
+        active = true; loop();
+    }
+
+    class Projectile {
+        constructor(x,y,dir,owner) { this.x=x; this.y=y; this.vx=dir*(owner.ult?25:18); this.owner=owner; }
+        draw() {
+            ctx.fillStyle=this.owner.ult ? "gold" : (this.owner.isP?"#00ffff":"#ff0055");
+            ctx.shadowBlur = this.owner.ult ? 30 : 15; ctx.shadowColor = ctx.fillStyle;
+            ctx.beginPath(); ctx.arc(this.x,this.y,this.owner.ult?20:12,0,Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    class Fighter {
+        constructor(x,n,isP) {
+            this.x=x; this.y= stage.y - 150; 
+            this.w=(n==="Necrozma" || n==="Charizard")?130:95; this.h=this.w;
+            this.vx=0; this.vy=0; this.pct=0; this.isP=isP; this.dir=isP?1:-1; this.jumps=0; this.ult = false;
+            this.img = new Image();
+            const ids={Pikachu:25, Lucario:448, Charizard:6, Necrozma:800, Broguin:393};
+            this.img.src=`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${ids[n]||25}.gif`;
+        }
+        update() {
+            this.vy+=0.8; this.x+=this.vx; this.y+=this.vy; this.vx*=0.91;
+            if (this.y+this.h>stage.y && this.y<stage.y+stage.h && this.x+this.w>stage.x && this.x<stage.x+stage.w && this.vy>0) { this.y=stage.y-this.h; this.vy=0; this.jumps=0; }
+            if (this.y>600 || this.x<-300 || this.x>1300) { this.x=500; this.y=50; this.pct=0; this.vx=0; this.ult=false; shake=20; }
+            document.getElementById(this.isP?'p1-p':'p2-p').innerText = Math.floor(this.pct)+"%";
+        }
+        draw() { 
+            ctx.save();
+            if(this.ult) { ctx.shadowBlur = 30; ctx.shadowColor = "gold"; ctx.lineWidth = 5; ctx.strokeStyle = "gold"; ctx.strokeRect(this.x, this.y, this.w, this.h); }
+            if(this.dir===-1) { ctx.translate(this.x+this.w, this.y); ctx.scale(-1,1); ctx.drawImage(this.img,0,0,this.w,this.h); }
+            else { ctx.drawImage(this.img,this.x,this.y,this.w,this.h); }
+            ctx.restore();
+        }
+    }
+
+    const keys = {};
+    window.onkeydown=e=>{
+        if(document.activeElement.id === 'chat-in') {
+            if(e.key==='Enter' && conn) {
+                let txt = e.target.value;
+                if(txt) { conn.send({type:'msg', txt:txt}); addChat("YOU: "+txt); e.target.value=""; e.target.blur(); }
+            }
+            return;
+        }
+        keys[e.key]=true;
+        if(e.key==="ArrowUp" && p1.jumps<2) { p1.vy=-16; p1.jumps++; }
+        if(e.key===" ") { 
+            projectiles.push(new Projectile(p1.x+p1.w/2, p1.y+p1.h/2, p1.dir, p1)); 
+            if(conn) conn.send({type:'atk'});
+            if(p1.ult) p1.ult = false; 
+        }
+        if(e.key==='Enter' && gameMode==='multi') document.getElementById('chat-in').focus();
+    };
+    window.onkeyup=e=>keys[e.key]=false;
+
+    function loop() {
+        if(!active) return;
+        ctx.save(); if(shake>0) { ctx.translate(Math.random()*shake-shake/2, Math.random()*shake-shake/2); shake*=0.9; }
+        ctx.clearRect(0,0,1000,500); ctx.fillStyle="rgba(0,255,204,0.3)"; ctx.fillRect(stage.x,stage.y,stage.w,stage.h);
+        
+        if(keys.ArrowLeft) { p1.vx=-8; p1.dir=-1; } if(keys.ArrowRight) { p1.vx=8; p1.dir=1; }
+
+        // Ultimate Orb Logic
+        if(!orb.active) {
+            orb.timer--;
+            if(orb.timer <= 0) { orb.active = true; orb.x = 250 + Math.random() * 500; orb.y = 150 + Math.random() * 150; if(conn) conn.send({type:'orb', active:true, x:orb.x, y:orb.y}); }
+        } else {
+            ctx.fillStyle = "gold"; ctx.shadowBlur = 20; ctx.shadowColor = "white";
+            ctx.beginPath(); ctx.arc(orb.x, orb.y, 25, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+            if(Math.hypot(p1.x+p1.w/2 - orb.x, p1.y+p1.h/2 - orb.y) < 50) { p1.ult = true; orb.active = false; orb.timer = 600; if(conn) conn.send({type:'orb', active:false}); }
+            if(gameMode === 'npc' && Math.hypot(p2.x+p2.w/2 - orb.x, p2.y+p2.h/2 - orb.y) < 50) { p2.ult = true; orb.active = false; orb.timer = 600; }
+        }
+
+        if(conn) conn.send({type:'update', x:p1.x, y:p1.y, pct:p1.pct, dir:p1.dir, ult:p1.ult});
+
+        projectiles.forEach((proj,i)=>{
+            proj.x+=proj.vx; proj.draw();
+            let t=proj.owner===p1?p2:p1;
+            if(proj.x>t.x && proj.x<t.x+t.w && proj.y>t.y && proj.y<t.y+t.h) { 
+                let multi = proj.owner.ult ? 4 : 1;
+                t.pct+= (9 * multi); t.vx=proj.vx*(t.pct/15); t.vy = -t.pct/10;
+                shake=15 * multi; projectiles.splice(i,1); 
+                if(proj.owner.ult) proj.owner.ult = false;
+            }
+            if(proj.x < -100 || proj.x > 1100) projectiles.splice(i,1);
+        });
+
+        p1.update(); 
+        if(gameMode==="npc") {
+            if(p2.x<p1.x-180) p2.vx=5; else if(p2.x>p1.x+180) p2.vx=-5;
+            if(Math.random()<0.015) projectiles.push(new Projectile(p2.x+p2.w/2, p2.y+p2.h/2, p2.dir, p2));
+            p2.update(); 
+        }
+        p1.draw(); p2.draw(); ctx.restore(); requestAnimationFrame(loop);
+    }
+</script>
+</body>
+</html>
